@@ -1,0 +1,10 @@
+# Python 3.10 (tested). Install with: pip install -r requirements.txt
+# TensorFlow bundles Keras 2.15 as tensorflow.keras.
+# Use the tensorflow (instead of tensorflow-cpu) package if you want GPU support.
+tensorflow-cpu==2.15.1
+numpy<2.0
+
+# SUMO + TraCI shipped as Python wheels (no separate SUMO system install needed).
+eclipse-sumo==1.27.1
+traci==1.27.1
+sumolib==1.27.1

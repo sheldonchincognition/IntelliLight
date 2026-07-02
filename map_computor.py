@@ -15,71 +15,30 @@ import math
 import os
 import sys
 import xml.etree.ElementTree as ET
-from sys import platform
 from sumo_agent import Vehicles
 
-###### Please Specify the location of your traci module
-
-if platform == "linux" or platform == "linux2":# this is linux
-    os.environ['SUMO_HOME'] = '/usr/share/sumo'
+###### Import the traci module.
+# traci is distributed as a Python package (e.g. `pip install eclipse-sumo traci sumolib`),
+# so a direct import works. As a fallback we look under SUMO_HOME/tools.
+if "SUMO_HOME" not in os.environ:
     try:
+        import sumo
+        os.environ["SUMO_HOME"] = os.path.dirname(sumo.__file__)
+    except ImportError:
+        pass
+
+try:
+    import traci
+    import traci.constants as tc
+except ImportError:
+    if "SUMO_HOME" in os.environ:
+        sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
         import traci
         import traci.constants as tc
-    except ImportError:
-        if "SUMO_HOME" in os.environ:
-            print(os.path.join(os.environ["SUMO_HOME"], "tools"))
-            sys.path.append(
-	            os.path.join(os.environ["SUMO_HOME"], "tools")
-	        )
-            try:
-                import traci
-                import traci.constants as tc
-            except ImportError:
-                raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-        else:
-            raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-
-elif platform == "win32":
-    os.environ['SUMO_HOME'] = 'C:\\Program Files (x86)\\DLR\\Sumo'
-
-    try:
-        import traci
-        import traci.constants as tc
-    except ImportError:
-        if "SUMO_HOME" in os.environ:
-            print(os.path.join(os.environ["SUMO_HOME"], "tools"))
-            sys.path.append(
-                os.path.join(os.environ["SUMO_HOME"], "tools")
-            )
-            try:
-                import traci
-                import traci.constants as tc
-            except ImportError:
-                raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-        else:
-            raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-elif platform =='darwin':
-    os.environ['SUMO_HOME'] = "/Users/{0}/sumo/sumo-git".format(os.getlogin())
-
-    try:
-        import traci
-        import traci.constants as tc
-    except ImportError:
-        if "SUMO_HOME" in os.environ:
-            print(os.path.join(os.environ["SUMO_HOME"], "tools"))
-            sys.path.append(
-                os.path.join(os.environ["SUMO_HOME"], "tools")
-            )
-            try:
-                import traci
-                import traci.constants as tc
-            except ImportError:
-                raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-        else:
-            raise EnvironmentError("Please set SUMO_HOME environment variable or install traci as python module!")
-
-else:
-    sys.exit("platform error")
+    else:
+        raise EnvironmentError(
+            "Please install the 'traci' package (e.g. `pip install eclipse-sumo traci sumolib`) "
+            "or set the SUMO_HOME environment variable!")
 
 yeta = 0.15
 tao = 2
@@ -120,7 +79,7 @@ def end_sumo():
     traci.close()
 
 def get_current_time():
-    return traci.simulation.getCurrentTime() / 1000
+    return traci.simulation.getTime()
 
 def phase_affected_lane(phase="NSG_SNG",
                         four_lane_ids={'W': 'edge1-0', "E": "edge2-0", 'S': 'edge4-0', 'N': 'edge3-0'}):
@@ -243,7 +202,7 @@ def changeTrafficLight_7(current_phase=0):  # [WNG_ESG_WSG_ENG_NWG_SEG]
     # phases=["WNG_ESG_WSG_ENG_NWG_SEG","EWG_WEG_WSG_ENG_NWG_SEG","NSG_NEG_SNG_SWG_WSG_ENG_NWG_SEG"]
     next_phase = (current_phase + 1) % len(controlSignal)
     next_phase_time_eclipsed = 0
-    traci.trafficlights.setRedYellowGreenState(node_light_7, controlSignal[next_phase])
+    traci.trafficlight.setRedYellowGreenState(node_light_7, controlSignal[next_phase])
     return next_phase, next_phase_time_eclipsed
 
 
@@ -398,8 +357,7 @@ def get_num_of_emergency_stops(vehicle_dict):
     emergency_stops = 0
     vehicle_id_list = traci.vehicle.getIDList()
     for vehicle_id in vehicle_id_list:
-        traci.vehicle.subscribe(vehicle_id, (tc.VAR_LANE_ID, tc.VAR_SPEED))
-        current_speed = traci.vehicle.getSubscriptionResults(vehicle_id).get(64)
+        current_speed = traci.vehicle.getSpeed(vehicle_id)
         if (vehicle_id in vehicle_dict.keys()):
             vehicle_former_state = vehicle_dict[vehicle_id]
             if current_speed - vehicle_former_state.speed < -4.5:
@@ -417,7 +375,7 @@ def get_partial_travel_time_duration(vehicle_dict, vehicle_id_list):
     travel_time_duration = 0
     for vehicle_id in vehicle_id_list:
         if (vehicle_id in vehicle_dict.keys()) and (vehicle_dict[vehicle_id].first_stop_time != -1):
-            travel_time_duration += (traci.simulation.getCurrentTime() / 1000 - vehicle_dict[vehicle_id].first_stop_time)/60.0
+            travel_time_duration += (traci.simulation.getTime() - vehicle_dict[vehicle_id].first_stop_time)/60.0
     if len(vehicle_id_list) > 0:
         return travel_time_duration#/len(vehicle_id_list)
     else:
@@ -428,7 +386,7 @@ def get_travel_time_duration(vehicle_dict, vehicle_id_list):
     travel_time_duration = 0
     for vehicle_id in vehicle_id_list:
         if (vehicle_id in vehicle_dict.keys()):
-            travel_time_duration += (traci.simulation.getCurrentTime() / 1000 - vehicle_dict[vehicle_id].enter_time)/60.0
+            travel_time_duration += (traci.simulation.getTime() - vehicle_dict[vehicle_id].enter_time)/60.0
     if len(vehicle_id_list) > 0:
         return travel_time_duration#/len(vehicle_id_list)
     else:
@@ -444,18 +402,17 @@ def update_vehicles_state(dic_vehicles):
         if (vehicle_id in dic_vehicles.keys()) == False:
             vehicle = Vehicles()
             vehicle.id = vehicle_id
-            traci.vehicle.subscribe(vehicle_id, (tc.VAR_LANE_ID, tc.VAR_SPEED))
-            vehicle.speed = traci.vehicle.getSubscriptionResults(vehicle_id).get(64)
-            current_sumo_time = traci.simulation.getCurrentTime()/1000
+            vehicle.speed = traci.vehicle.getSpeed(vehicle_id)
+            current_sumo_time = traci.simulation.getTime()
             vehicle.enter_time = current_sumo_time
             # if it enters and stops at the very first
             if (vehicle.speed < 0.1) and (vehicle.first_stop_time == -1):
                 vehicle.first_stop_time = current_sumo_time
             dic_vehicles[vehicle_id] = vehicle
         else:
-            dic_vehicles[vehicle_id].speed = traci.vehicle.getSubscriptionResults(vehicle_id).get(64)
+            dic_vehicles[vehicle_id].speed = traci.vehicle.getSpeed(vehicle_id)
             if (dic_vehicles[vehicle_id].speed < 0.1) and (dic_vehicles[vehicle_id].first_stop_time == -1):
-                dic_vehicles[vehicle_id].first_stop_time = traci.simulation.getCurrentTime()/1000
+                dic_vehicles[vehicle_id].first_stop_time = traci.simulation.getTime()
             if (vehicle_id in vehicle_id_entering_list) == False:
                 dic_vehicles[vehicle_id].entering = False
 
@@ -520,8 +477,7 @@ def get_car_on_red_and_green(cur_phase):
         vehicle_ids = traci.lane.getLastStepVehicleIDs(lane)
         omega = 0
         for vehicle_id in vehicle_ids:
-            traci.vehicle.subscribe(vehicle_id, (tc.VAR_DISTANCE, tc.VAR_LANEPOSITION))
-            distance = traci.vehicle.getSubscriptionResults(vehicle_id).get(132)
+            distance = traci.vehicle.getDistance(vehicle_id)
             if distance > 100:
                 omega += 1
         vehicle_green.append(omega)
@@ -537,8 +493,8 @@ def get_status_img(current_phase,tl_node_id=node_light_7,area_length=600):
 def set_yellow(dic_vehicles,rewards_info_dict,f_log_rewards,rewards_detail_dict_list,node_id="node0"):
     Yellow = "yyyyyyyyyyyyyyyy"
     for i in range(3):
-        timestamp = traci.simulation.getCurrentTime() / 1000
-        traci.trafficlights.setRedYellowGreenState(node_id, Yellow)
+        timestamp = traci.simulation.getTime()
+        traci.trafficlight.setRedYellowGreenState(node_id, Yellow)
         traci.simulationStep()
         log_rewards(dic_vehicles, 0, rewards_info_dict, f_log_rewards, timestamp, rewards_detail_dict_list)
         update_vehicles_state(dic_vehicles)
@@ -546,8 +502,8 @@ def set_yellow(dic_vehicles,rewards_info_dict,f_log_rewards,rewards_detail_dict_
 def set_all_red(dic_vehicles,rewards_info_dict,f_log_rewards,rewards_detail_dict_list,node_id="node0"):
     Red = "rrrrrrrrrrrrrrrr"
     for i in range(3):
-        timestamp = traci.simulation.getCurrentTime()/1000
-        traci.trafficlights.setRedYellowGreenState(node_id, Red)
+        timestamp = traci.simulation.getTime()
+        traci.trafficlight.setRedYellowGreenState(node_id, Red)
         traci.simulationStep()
         log_rewards(dic_vehicles, 0, rewards_info_dict, f_log_rewards, timestamp,rewards_detail_dict_list)
         update_vehicles_state(dic_vehicles)
@@ -560,7 +516,7 @@ def run(action, current_phase, current_phase_duration, vehicle_dict, rewards_inf
         # set_all_red(vehicle_dict,rewards_info_dict,f_log_rewards, node_id=node_id)
         return_phase, _ = changeTrafficLight_7(current_phase=current_phase)  # change traffic light in SUMO according to actionToPerform
         return_phase_duration = 0
-    timestamp = traci.simulation.getCurrentTime() / 1000
+    timestamp = traci.simulation.getTime()
     traci.simulationStep()
     log_rewards(vehicle_dict, action, rewards_info_dict, f_log_rewards, timestamp, rewards_detail_dict_list)
     vehicle_dict = update_vehicles_state(vehicle_dict)
