@@ -26,9 +26,22 @@ This project proposes a reinforcement learning based intelligent traffic light c
 
 Before running above codes, you may need to install following packages or environments:
 
-- Python 3.6
-- SUMO 0.32 with TraCI module. Please specify TraCI location correpsondingly in map_computor.py
-- Keras 2.2.0 and Tensorflow 1.9.0
+- Python 3.10 (tested)
+- TensorFlow 2.15 (bundles Keras 2.15)
+- SUMO 1.27 with the TraCI module
+
+The dependencies are pinned in `requirements.txt`. SUMO/TraCI are installed as Python
+wheels (`eclipse-sumo`, `traci`, `sumolib`), so no separate system-wide SUMO install is
+required — the `sumo`/`sumo-gui` binaries are located automatically via `sumolib.checkBinary`.
+
+```
+pip install -r requirements.txt
+python runexp.py
+```
+
+> **Note:** This code was originally written for Python 3.6, TensorFlow 1.9 and SUMO 0.32.
+> It has been upgraded to run on current TensorFlow 2.x (`tensorflow.keras`) and SUMO 1.x
+> (the `traci.trafficlight` API, `simulation.getTime()`, direct vehicle getters, etc.).
 
 
 

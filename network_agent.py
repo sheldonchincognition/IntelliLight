@@ -9,14 +9,14 @@ Network agent from agent.py
 
 
 import numpy as np
-from keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization, Activation, Multiply, Add
-from keras.models import Model, model_from_json, load_model
-from keras.optimizers import RMSprop
-from keras.layers.core import Dropout
-from keras.layers.pooling import MaxPooling2D
-from keras import backend as K
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization, Activation, Multiply, Add
+from tensorflow.keras.models import Model, model_from_json, load_model
+from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras import backend as K
 import random
-from keras.engine.topology import Layer
+from tensorflow.keras.layers import Layer
 import os
 
 from agent import Agent, State
@@ -109,7 +109,8 @@ class NetworkAgent(Agent):
         return q_values
 
     def load_model(self, file_name):
-        self.q_network = load_model(os.path.join(self.path_set.PATH_TO_MODEL, "%s_q_network.h5" % file_name))
+        self.q_network = load_model(os.path.join(self.path_set.PATH_TO_MODEL, "%s_q_network.h5" % file_name),
+                                    custom_objects={"Selector": Selector})
 
     def save_model(self, file_name):
         self.q_network.save(os.path.join(self.path_set.PATH_TO_MODEL, "%s_q_network.h5" % file_name))
@@ -144,7 +145,7 @@ class NetworkAgent(Agent):
         network_weights = network_copy.get_weights()
         network = model_from_json(network_structure, custom_objects={"Selector": Selector})
         network.set_weights(network_weights)
-        network.compile(optimizer=RMSprop(lr=self.para_set.LEARNING_RATE),
+        network.compile(optimizer=RMSprop(learning_rate=self.para_set.LEARNING_RATE),
                         loss="mean_squared_error")
         return network
 

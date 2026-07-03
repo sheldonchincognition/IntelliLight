@@ -8,11 +8,11 @@ Deep reinforcement learning agent
 '''
 
 import numpy as np
-from keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization, Activation, Multiply, Add
-from keras.models import Model, model_from_json, load_model
-from keras.optimizers import RMSprop
-from keras.callbacks import EarlyStopping, TensorBoard
-from keras.layers.merge import concatenate, add
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization, Activation, Multiply, Add
+from tensorflow.keras.models import Model, model_from_json, load_model
+from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
+from tensorflow.keras.layers import concatenate, add
 import random
 import os
 
@@ -111,7 +111,7 @@ class DeeplightAgent(NetworkAgent):
         network = Model(inputs=[dic_input_node[feature_name]
                                 for feature_name in self.para_set.LIST_STATE_FEATURE],
                         outputs=q_values)
-        network.compile(optimizer=RMSprop(lr=self.para_set.LEARNING_RATE),
+        network.compile(optimizer=RMSprop(learning_rate=self.para_set.LEARNING_RATE),
                         loss="mean_squared_error")
         network.summary()
 
