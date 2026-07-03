@@ -231,6 +231,9 @@ class TrafficLightDQN:
             self.agent.set_update_outdated()
             self.agent.update_network(if_pretrain, use_average, current_time)
             self.agent.update_network_bar()
+        else:
+            # close the SUMO/TraCI connection so the next run (or traffic file) can start a fresh one
+            s_agent.end_sumo()
         self.agent.reset_update_count()
         print("END")
 
